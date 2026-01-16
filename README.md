@@ -171,7 +171,79 @@ Config file location:
 
 opencode-sync uses [age](https://age-encryption.org/) for encryption of sensitive files (auth tokens).
 
-### Key Management
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        PUSH (Machine A)                         │
+├─────────────────────────────────────────────────────────────────┤
+│  auth.json ──encrypt──► auth.json.age ──push──► Git Remote     │
+│  (local)      (key)       (repo)                                │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        PULL (Machine B)                         │
+├─────────────────────────────────────────────────────────────────┤
+│  Git Remote ──pull──► auth.json.age ──decrypt──► auth.json     │
+│                         (repo)         (key)       (local)      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Decryption is automatic** during `pull`/`clone`/`sync` — but only if:
+- You have the private key on the machine (`~/.config/opencode-sync/age.key`)
+- Encryption is enabled in config (`encryption.enabled: true`)
+- Auth sync is enabled (`sync.includeAuth: true`)
+
+### Full Setup Flow
+
+#### First Machine (Initial Setup)
+
+```bash
+# 1. Run setup wizard
+opencode-sync setup
+#    → Enter repo URL
+#    → Enable encryption? Yes
+#    → Sync auth tokens? Yes (if you want cross-machine auth)
+
+# 2. Key is auto-generated. BACK IT UP NOW:
+opencode-sync key export
+#    → Copy the AGE-SECRET-KEY-1... to your password manager
+
+# 3. Initialize and push
+opencode-sync init
+opencode-sync push
+```
+
+#### Second Machine (Clone Existing)
+
+```bash
+# 1. Import your key FIRST (before clone)
+opencode-sync key import "AGE-SECRET-KEY-1..."
+
+# 2. Run setup with same settings
+opencode-sync setup
+#    → Same repo URL
+#    → Enable encryption? Yes
+#    → Sync auth tokens? Yes
+
+# 3. Clone - auth tokens are automatically decrypted
+opencode-sync clone git@github.com:user/opencode-config.git
+#    ✓ Configs applied
+#    ✓ auth.json decrypted automatically
+#    → You're logged in!
+```
+
+#### Without Key Import (New Machine, No Auth Sync)
+
+If you clone without importing the key:
+```bash
+opencode-sync clone git@github.com:user/opencode-config.git
+#    ✓ Configs applied (opencode.json, agents, etc.)
+#    ⚠ auth.json.age skipped (no key to decrypt)
+#    → You'll need to re-authenticate in OpenCode
+```
+
+### Key Management Commands
 
 | Command | Description |
 |---------|-------------|
@@ -179,35 +251,39 @@ opencode-sync uses [age](https://age-encryption.org/) for encryption of sensitiv
 | `opencode-sync key import <key>` | Import key from backup |
 | `opencode-sync key regen` | Generate new key (⚠️ old encrypted data lost) |
 
-### Setting Up a New Machine
-
-1. On your **existing machine**, export your key:
-   ```bash
-   opencode-sync key export
-   ```
-2. Save the key in your password manager (e.g., 1Password)
-
-3. On your **new machine**, import the key before cloning:
-   ```bash
-   opencode-sync key import "AGE-SECRET-KEY-1..."
-   opencode-sync clone git@github.com:user/opencode-config.git
-   ```
-
 ### Lost Your Key?
 
-If you lose your private key, encrypted data (auth tokens) cannot be recovered. However:
-- Your configs, agents, and other non-sensitive files are **not encrypted** and still accessible
-- You can regenerate a new key and re-authenticate:
-  ```bash
-  opencode-sync key regen
-  opencode-sync push  # Push with new encryption
-  ```
+If you lose your private key:
+- ❌ Encrypted auth tokens are **unrecoverable**
+- ✅ Configs, agents, commands, themes are **not encrypted** — still accessible
 
-### Important Notes
+**Recovery steps:**
+```bash
+# 1. Generate a new key
+opencode-sync key regen
 
-- Your private key is stored at `~/.config/opencode-sync/age.key`
-- The key is **never synced** to the remote repository
-- **Back up your key** to a password manager immediately after setup
+# 2. Re-authenticate in OpenCode (get new auth.json)
+
+# 3. Push with new encryption
+opencode-sync push
+```
+
+### What Gets Encrypted?
+
+| File | Encrypted | Notes |
+|------|-----------|-------|
+| `auth.json` | ✅ Yes | OAuth tokens (if `sync.includeAuth: true`) |
+| `mcp-auth.json` | ✅ Yes | MCP auth (if `sync.includeMcpAuth: true`) |
+| `opencode.json` | ❌ No | Main config |
+| `AGENTS.md` | ❌ No | Global rules |
+| `agent/`, `command/`, etc. | ❌ No | Custom extensions |
+
+### Security Notes
+
+- Private key stored at: `~/.config/opencode-sync/age.key`
+- Key is **never synced** to remote — stays local only
+- Encrypted files use `.age` extension in repo
+- **Back up your key immediately** after setup to a password manager
 
 ## Development
 
