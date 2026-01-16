@@ -136,9 +136,24 @@ func (s *Syncer) CopyToRepo() error {
 		if _, err := os.Stat(authSrc); err == nil {
 			authDst := filepath.Join(s.paths.SyncRepoDir(), "auth.json.age")
 
-			// Encrypt auth.json before copying
 			if err := s.encryption.EncryptFile(authSrc, authDst); err != nil {
 				return fmt.Errorf("failed to encrypt auth.json: %w", err)
+			}
+		}
+	}
+
+	// Handle mcp-auth.json if enabled
+	if s.cfg.Sync.IncludeMcpAuth {
+		if s.encryption == nil {
+			return fmt.Errorf("includeMcpAuth requires encryption to be enabled")
+		}
+
+		mcpAuthSrc := s.paths.OpenCodeMcpAuthFile()
+		if _, err := os.Stat(mcpAuthSrc); err == nil {
+			mcpAuthDst := filepath.Join(s.paths.SyncRepoDir(), "mcp-auth.json.age")
+
+			if err := s.encryption.EncryptFile(mcpAuthSrc, mcpAuthDst); err != nil {
+				return fmt.Errorf("failed to encrypt mcp-auth.json: %w", err)
 			}
 		}
 	}
@@ -187,9 +202,22 @@ func (s *Syncer) CopyFromRepo() error {
 
 			dstPath = s.paths.OpenCodeAuthFile()
 
-			// Decrypt auth.json
 			if err := s.encryption.DecryptFile(path, dstPath); err != nil {
 				return fmt.Errorf("failed to decrypt auth.json: %w", err)
+			}
+			return nil
+		}
+
+		// Handle encrypted mcp-auth.json
+		if relPath == "mcp-auth.json.age" && s.cfg.Sync.IncludeMcpAuth {
+			if s.encryption == nil {
+				return fmt.Errorf("found encrypted mcp-auth.json but encryption is not enabled")
+			}
+
+			dstPath = s.paths.OpenCodeMcpAuthFile()
+
+			if err := s.encryption.DecryptFile(path, dstPath); err != nil {
+				return fmt.Errorf("failed to decrypt mcp-auth.json: %w", err)
 			}
 			return nil
 		}
