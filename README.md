@@ -78,12 +78,15 @@ For scripting or power users:
 
 | Command | Description |
 |---------|-------------|
+| `opencode-sync setup` | Run setup wizard |
+| `opencode-sync init` | Initialize new sync repository |
+| `opencode-sync link <url>` | Link local configs to existing remote (overwrites remote) |
+| `opencode-sync clone <url>` | Clone existing remote (overwrites local) |
 | `opencode-sync sync` | Pull then push (most common) |
 | `opencode-sync pull` | Pull remote changes |
 | `opencode-sync push` | Push local changes |
 | `opencode-sync status` | Show sync status |
 | `opencode-sync diff` | Show differences |
-| `opencode-sync setup` | Run setup wizard |
 | `opencode-sync doctor` | Diagnose issues |
 | `opencode-sync config` | Manage configuration |
 

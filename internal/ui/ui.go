@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GareArc/opencode-sync/internal/config"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/GareArc/opencode-sync/internal/config"
 )
 
 var (
@@ -53,6 +53,12 @@ func MainMenu() (string, error) {
 					huh.NewOption("View status", "status"),
 					huh.NewOption("View diff", "diff"),
 					huh.NewOption("Settings", "config"),
+					huh.NewOption("─────────────────────", ""),
+					huh.NewOption("Initialize new repo", "init"),
+					huh.NewOption("Link to existing remote", "link"),
+					huh.NewOption("Clone from remote", "clone"),
+					huh.NewOption("Run diagnostics", "doctor"),
+					huh.NewOption("─────────────────────", ""),
 					huh.NewOption("Exit", "exit"),
 				).
 				Value(&choice),

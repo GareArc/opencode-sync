@@ -180,8 +180,41 @@ func runInteractiveMenu(cfg *config.Config) error {
 			if err := runConfigShow(); err != nil {
 				ui.Error(err.Error())
 			}
+		case "init":
+			if err := runInit(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "link":
+			repoURL, err := ui.Input("Enter repository URL to link", "git@github.com:username/repo.git")
+			if err != nil {
+				ui.Error(err.Error())
+				continue
+			}
+			if repoURL == "" {
+				ui.Warn("No URL provided, cancelled")
+				continue
+			}
+			if err := runLink(repoURL); err != nil {
+				ui.Error(err.Error())
+			}
+		case "clone":
+			repoURL, err := ui.Input("Enter repository URL to clone", "git@github.com:username/repo.git")
+			if err != nil {
+				ui.Error(err.Error())
+				continue
+			}
+			if err := runClone(repoURL); err != nil {
+				ui.Error(err.Error())
+			}
+		case "doctor":
+			if err := runDoctor(); err != nil {
+				ui.Error(err.Error())
+			}
 		case "exit":
 			return nil
+		case "":
+			// Separator selected, ignore
+			continue
 		}
 
 		fmt.Println()
