@@ -80,6 +80,7 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(keyCmd)
 	rootCmd.AddCommand(rebindCmd)
+	rootCmd.AddCommand(uninstallCmd)
 }
 
 // runSetupWizard runs the first-time setup wizard

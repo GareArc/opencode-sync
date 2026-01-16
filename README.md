@@ -100,6 +100,18 @@ For scripting or power users:
 | `opencode-sync doctor` | Diagnose issues |
 | `opencode-sync config` | Manage configuration |
 | `opencode-sync key` | Manage encryption keys |
+| `opencode-sync uninstall` | Uninstall opencode-sync |
+
+## Uninstalling
+
+```bash
+opencode-sync uninstall
+```
+
+This will:
+- Remove the binary (may require sudo)
+- Optionally remove config (`~/.config/opencode-sync/`) and data (`~/.local/share/opencode-sync/`)
+- Your OpenCode configurations are **not affected**
 
 ## Requirements
 

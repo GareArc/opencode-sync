@@ -269,6 +269,21 @@ Examples:
 	},
 }
 
+var uninstallCmd = &cobra.Command{
+	Use:   "uninstall",
+	Short: "Uninstall opencode-sync",
+	Long: `Remove opencode-sync and optionally its data.
+
+This will:
+- Remove the opencode-sync binary (may require sudo)
+- Optionally remove config and sync data
+
+Your OpenCode configurations are NOT affected.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runUninstall()
+	},
+}
+
 func init() {
 	// Add config subcommands
 	configCmd.AddCommand(configShowCmd)
@@ -1277,4 +1292,72 @@ func runGitCommand(dir string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func runUninstall() error {
+	ui.Warn("This will uninstall opencode-sync from your system.")
+	fmt.Println()
+
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	binaryPath, err := os.Executable()
+	if err != nil {
+		binaryPath = "opencode-sync (location unknown)"
+	}
+
+	fmt.Println("The following will be removed:")
+	fmt.Printf("  Binary: %s\n", binaryPath)
+	fmt.Printf("  Config: %s\n", p.ConfigDir)
+	fmt.Printf("  Data:   %s\n", p.DataDir)
+	fmt.Println()
+	ui.Info("Your OpenCode configurations will NOT be affected.")
+	fmt.Println()
+
+	confirmed, err := ui.Confirm("Proceed with uninstall?", "This cannot be undone")
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		ui.Info("Uninstall cancelled")
+		return nil
+	}
+
+	removeData, err := ui.Confirm("Also remove config and sync data?", "Includes encryption key and local repo")
+	if err != nil {
+		return err
+	}
+
+	if removeData {
+		if err := os.RemoveAll(p.ConfigDir); err != nil {
+			ui.Warn(fmt.Sprintf("Failed to remove config dir: %v", err))
+		} else {
+			ui.Success(fmt.Sprintf("Removed: %s", p.ConfigDir))
+		}
+
+		if err := os.RemoveAll(p.DataDir); err != nil {
+			ui.Warn(fmt.Sprintf("Failed to remove data dir: %v", err))
+		} else {
+			ui.Success(fmt.Sprintf("Removed: %s", p.DataDir))
+		}
+	}
+
+	if binaryPath != "" && binaryPath != "opencode-sync (location unknown)" {
+		if err := os.Remove(binaryPath); err != nil {
+			if os.IsPermission(err) {
+				ui.Warn("Cannot remove binary (permission denied). Run with sudo or remove manually:")
+				fmt.Printf("  sudo rm %s\n", binaryPath)
+			} else {
+				ui.Warn(fmt.Sprintf("Failed to remove binary: %v", err))
+			}
+		} else {
+			ui.Success(fmt.Sprintf("Removed: %s", binaryPath))
+		}
+	}
+
+	fmt.Println()
+	ui.Success("Uninstall complete!")
+	return nil
 }
