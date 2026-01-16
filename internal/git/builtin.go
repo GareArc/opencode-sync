@@ -3,64 +3,43 @@ package git
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-// BuiltinGit implements Repository using go-git
+func runGitCommand(dir string, args ...string) error {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 type BuiltinGit struct {
 	path string
 	repo *git.Repository
-	auth transport.AuthMethod
 }
 
-// NewBuiltinGit creates a new BuiltinGit instance
 func NewBuiltinGit(path string) *BuiltinGit {
 	return &BuiltinGit{
 		path: path,
-		auth: nil, // Will be set based on repo URL
 	}
 }
 
-// SetAuth sets the authentication method
-func (g *BuiltinGit) SetAuth(auth transport.AuthMethod) {
-	g.auth = auth
-}
-
-// SetSSHAuth sets SSH authentication
-func (g *BuiltinGit) SetSSHAuth(keyPath string, password string) error {
-	auth, err := ssh.NewPublicKeysFromFile("git", keyPath, password)
-	if err != nil {
-		return fmt.Errorf("failed to load SSH key: %w", err)
-	}
-	g.auth = auth
-	return nil
-}
-
-// SetHTTPAuth sets HTTP basic authentication
-func (g *BuiltinGit) SetHTTPAuth(username, password string) {
-	g.auth = &http.BasicAuth{
-		Username: username,
-		Password: password,
-	}
-}
-
-// Clone clones a repository
+// Clone clones a repository using system git for proper auth support
 func (g *BuiltinGit) Clone(url string) error {
-	repo, err := git.PlainClone(g.path, false, &git.CloneOptions{
-		URL:      url,
-		Progress: os.Stdout,
-		Auth:     g.auth,
-	})
-	if err != nil {
+	if err := runGitCommand("", "clone", url, g.path); err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
+	}
+
+	repo, err := git.PlainOpen(g.path)
+	if err != nil {
+		return fmt.Errorf("failed to open cloned repository: %w", err)
 	}
 
 	g.repo = repo
@@ -235,21 +214,12 @@ func (g *BuiltinGit) Commit(message string) error {
 	return nil
 }
 
-// Push pushes to remote
 func (g *BuiltinGit) Push() error {
 	if g.repo == nil {
 		return fmt.Errorf("repository not initialized")
 	}
 
-	err := g.repo.Push(&git.PushOptions{
-		RemoteName: "origin",
-		Auth:       g.auth,
-		Progress:   os.Stdout,
-	})
-	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			return nil
-		}
+	if err := runGitCommand(g.path, "push", "origin", "HEAD"); err != nil {
 		return &AuthError{Remote: "origin", Err: err}
 	}
 
@@ -261,16 +231,7 @@ func (g *BuiltinGit) ForcePush() error {
 		return fmt.Errorf("repository not initialized")
 	}
 
-	err := g.repo.Push(&git.PushOptions{
-		RemoteName: "origin",
-		Auth:       g.auth,
-		Progress:   os.Stdout,
-		Force:      true,
-	})
-	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			return nil
-		}
+	if err := runGitCommand(g.path, "push", "--force", "origin", "HEAD"); err != nil {
 		return &AuthError{Remote: "origin", Err: err}
 	}
 
@@ -282,24 +243,7 @@ func (g *BuiltinGit) Pull() error {
 		return fmt.Errorf("repository not initialized")
 	}
 
-	w, err := g.repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
-	}
-
-	err = w.Pull(&git.PullOptions{
-		RemoteName: "origin",
-		Auth:       g.auth,
-		Progress:   os.Stdout,
-	})
-	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			return nil
-		}
-		// Check for conflicts
-		if err.Error() == "merge conflicts" {
-			return &ConflictError{Files: []string{}}
-		}
+	if err := runGitCommand(g.path, "pull", "origin"); err != nil {
 		return fmt.Errorf("failed to pull: %w", err)
 	}
 
@@ -416,21 +360,12 @@ func (g *BuiltinGit) GetLastCommit() (*CommitInfo, error) {
 	}, nil
 }
 
-// Fetch fetches from remote without merging
 func (g *BuiltinGit) Fetch() error {
 	if g.repo == nil {
 		return fmt.Errorf("repository not initialized")
 	}
 
-	err := g.repo.Fetch(&git.FetchOptions{
-		RemoteName: "origin",
-		Auth:       g.auth,
-		Progress:   os.Stdout,
-	})
-	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			return nil
-		}
+	if err := runGitCommand(g.path, "fetch", "origin"); err != nil {
 		return fmt.Errorf("failed to fetch: %w", err)
 	}
 
