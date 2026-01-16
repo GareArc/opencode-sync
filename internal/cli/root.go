@@ -1,0 +1,189 @@
+package cli
+
+import (
+	"fmt"
+
+	"github.com/GareArc/opencode-sync/internal/config"
+	"github.com/GareArc/opencode-sync/internal/crypto"
+	"github.com/GareArc/opencode-sync/internal/paths"
+	"github.com/GareArc/opencode-sync/internal/ui"
+	"github.com/spf13/cobra"
+)
+
+var (
+	// Version info
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+
+	// Global flags
+	verbose  bool
+	dryRun   bool
+	noPrompt bool
+	cfgFile  string
+)
+
+// SetVersionInfo sets version information from main
+func SetVersionInfo(v, c, d string) {
+	version = v
+	commit = c
+	date = d
+}
+
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "opencode-sync",
+	Short: "Sync OpenCode configurations across machines",
+	Long: `opencode-sync is a CLI tool to sync your OpenCode configurations 
+across multiple machines via Git, with optional encryption for secrets.
+
+Run without arguments for interactive mode, or use subcommands for scripting.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Check if config exists
+		cfg, err := config.Load()
+		if err != nil || cfg == nil {
+			// No config - run setup wizard
+			fmt.Println("Welcome to opencode-sync!")
+			fmt.Println()
+			return runSetupWizard()
+		}
+
+		// Config exists - show main menu
+		return runInteractiveMenu(cfg)
+	},
+}
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+func Execute() error {
+	return rootCmd.Execute()
+}
+
+func init() {
+	// Global flags
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "show what would be done without making changes")
+	rootCmd.PersistentFlags().BoolVar(&noPrompt, "no-prompt", false, "disable interactive prompts (for scripting)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.config/opencode-sync/config.json)")
+
+	// Add subcommands
+	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(linkCmd)
+	rootCmd.AddCommand(cloneCmd)
+	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(pushCmd)
+	rootCmd.AddCommand(pullCmd)
+	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(diffCmd)
+	rootCmd.AddCommand(setupCmd)
+	rootCmd.AddCommand(doctorCmd)
+	rootCmd.AddCommand(configCmd)
+}
+
+// runSetupWizard runs the first-time setup wizard
+func runSetupWizard() error {
+	result, err := ui.SetupWizard()
+	if err != nil {
+		return err
+	}
+
+	// Generate encryption keys if encryption is enabled
+	if result.Encryption.Enabled {
+		if err := generateAndSaveKeys(); err != nil {
+			return fmt.Errorf("failed to generate encryption keys: %w", err)
+		}
+	}
+
+	// Save config
+	if err := config.Save(result); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	ui.Success("Setup complete! Your config is ready to sync.")
+	fmt.Println()
+	fmt.Println("Next steps:")
+	fmt.Println("  Run 'opencode-sync' to open the main menu")
+	fmt.Println("  Or run 'opencode-sync sync' to sync now")
+
+	return nil
+}
+
+// generateAndSaveKeys generates an encryption key pair and saves it
+func generateAndSaveKeys() error {
+	ui.Info("Generating encryption keys...")
+
+	// Get paths
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	// Ensure config directory exists
+	if err := p.EnsureDirs(); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
+	}
+
+	// Generate keypair
+	keyPair, err := crypto.GenerateKey()
+	if err != nil {
+		return fmt.Errorf("failed to generate keypair: %w", err)
+	}
+
+	// Save private key
+	keyFile := p.KeyFile()
+	if err := crypto.SaveKeyToFile(keyPair.PrivateKey, keyFile); err != nil {
+		return fmt.Errorf("failed to save key: %w", err)
+	}
+
+	ui.Success(fmt.Sprintf("Encryption key saved to: %s", keyFile))
+	fmt.Println()
+	ui.Warn("IMPORTANT: Keep your public key for recovery:")
+	fmt.Println()
+	fmt.Println("  " + keyPair.PublicKey)
+	fmt.Println()
+	ui.Info("Save this public key in a secure location.")
+	ui.Info("You'll need it to decrypt your data if you lose the private key.")
+
+	return nil
+}
+
+// runInteractiveMenu shows the main menu and handles user selection
+func runInteractiveMenu(cfg *config.Config) error {
+	for {
+		choice, err := ui.MainMenu()
+		if err != nil {
+			return err
+		}
+
+		switch choice {
+		case "sync":
+			if err := runSync(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "pull":
+			if err := runPull(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "push":
+			if err := runPush(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "status":
+			if err := runStatus(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "diff":
+			if err := runDiff(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "config":
+			if err := runConfigShow(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "exit":
+			return nil
+		}
+
+		fmt.Println()
+	}
+}

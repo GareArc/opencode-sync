@@ -1,0 +1,48 @@
+# Binaries
+/opencode-sync
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+/dist/
+/bin/
+
+# Test binary
+*.test
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config (don't commit real config)
+config.local.json
+
+# GoReleaser
+/dist/
+
+# Debug
+__debug_bin*
+debug.test
+
+# Temporary files
+*.tmp
+*.temp
