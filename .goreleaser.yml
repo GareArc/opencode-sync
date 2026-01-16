@@ -70,7 +70,7 @@ brews:
       owner: GareArc
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    folder: Formula
+    directory: Formula
     homepage: "https://github.com/GareArc/opencode-sync"
     description: "Sync OpenCode configurations across machines via Git with optional encryption"
     license: "MIT"
@@ -86,7 +86,7 @@ scoops:
       owner: GareArc
       name: scoop-bucket
       token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
-    folder: bucket
+    directory: bucket
     homepage: "https://github.com/GareArc/opencode-sync"
     description: "Sync OpenCode configurations across machines via Git with optional encryption"
     license: "MIT"
