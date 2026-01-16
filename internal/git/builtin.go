@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -31,9 +32,13 @@ func NewBuiltinGit(path string) *BuiltinGit {
 	}
 }
 
-// Clone clones a repository using system git for proper auth support
 func (g *BuiltinGit) Clone(url string) error {
-	if err := runGitCommand("", "clone", url, g.path); err != nil {
+	parentDir := filepath.Dir(g.path)
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return fmt.Errorf("failed to create parent directory: %w", err)
+	}
+
+	if err := runGitCommand(parentDir, "clone", url, g.path); err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
 	}
 
