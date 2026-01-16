@@ -5,10 +5,11 @@ Sync your OpenCode configurations across machines via Git, with optional encrypt
 ## Features
 
 - **Cross-platform**: Works on Linux, macOS, and Windows
+- **Any git host**: GitHub, GitLab, Bitbucket, self-hosted, etc.
+- **Any auth method**: SSH keys, 1Password, gh auth, credential helpers
 - **Standalone**: Works before OpenCode starts (no chicken-egg problem)
 - **Interactive**: Guided setup and menu-driven interface
 - **Encrypted secrets**: Optional age encryption for sensitive data
-- **OAuth sync**: Optionally sync authentication tokens (encrypted)
 
 ## Installation
 
@@ -34,10 +35,18 @@ go install github.com/GareArc/opencode-sync@latest
 
 Download the latest release from the [releases page](https://github.com/GareArc/opencode-sync/releases).
 
-### Homebrew (coming soon)
+### Homebrew (macOS/Linux)
 
 ```bash
-brew install GareArc/tap/opencode-sync
+brew tap GareArc/tap
+brew install opencode-sync
+```
+
+### Scoop (Windows)
+
+```powershell
+scoop bucket add garearc https://github.com/GareArc/scoop-bucket
+scoop install opencode-sync
 ```
 
 ## Quick Start
@@ -89,6 +98,32 @@ For scripting or power users:
 | `opencode-sync diff` | Show differences |
 | `opencode-sync doctor` | Diagnose issues |
 | `opencode-sync config` | Manage configuration |
+
+## Requirements
+
+- **git** must be installed and available in PATH
+
+## Repository URL Formats
+
+opencode-sync uses your system's git installation, so any URL format and authentication method your git supports will work:
+
+```bash
+# SSH (recommended)
+git@github.com:username/repo.git
+git@gitlab.com:username/repo.git
+
+# HTTPS
+https://github.com/username/repo.git
+https://gitlab.com/username/repo.git
+```
+
+All standard git authentication methods are supported:
+- SSH keys (including 1Password SSH agent, ssh-agent)
+- HTTPS credentials via `gh auth login`
+- Git credential helpers (macOS Keychain, Windows Credential Manager, etc.)
+- `.netrc` files
+
+Works with any git host: GitHub, GitLab, Bitbucket, self-hosted, etc.
 
 ## Configuration
 
