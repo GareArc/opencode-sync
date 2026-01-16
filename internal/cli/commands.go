@@ -204,12 +204,82 @@ Examples:
 	},
 }
 
+var keyCmd = &cobra.Command{
+	Use:   "key",
+	Short: "Manage encryption keys",
+	Long:  `Manage encryption keys for secure syncing of auth tokens.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runKeyExport()
+	},
+}
+
+var keyExportCmd = &cobra.Command{
+	Use:   "export",
+	Short: "Export private key for backup",
+	Long: `Export your private encryption key.
+
+IMPORTANT: Store this key securely (e.g., password manager).
+Without it, encrypted data (auth tokens) cannot be recovered.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runKeyExport()
+	},
+}
+
+var keyImportCmd = &cobra.Command{
+	Use:   "import <key>",
+	Short: "Import a private key",
+	Long: `Import a private key from backup.
+
+Use this when setting up a new machine to decrypt existing auth tokens.
+
+Example:
+  opencode-sync key import "AGE-SECRET-KEY-1QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ"`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runKeyImport(args[0])
+	},
+}
+
+var keyRegenCmd = &cobra.Command{
+	Use:   "regen",
+	Short: "Regenerate encryption key",
+	Long: `Generate a new encryption key, replacing the existing one.
+
+WARNING: Previously encrypted data will become unrecoverable!
+Only use this if you've lost your key and need to start fresh.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runKeyRegen()
+	},
+}
+
+var rebindCmd = &cobra.Command{
+	Use:   "rebind <url>",
+	Short: "Change the remote repository URL",
+	Long: `Change the remote repository URL without reinitializing.
+
+This updates the remote URL for an existing sync repository.
+Useful when migrating to a new git host or changing repo location.
+
+Examples:
+  opencode-sync rebind git@github.com:user/new-repo.git
+  opencode-sync rebind https://github.com/user/new-repo.git`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runRebind(args[0])
+	},
+}
+
 func init() {
 	// Add config subcommands
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configPathCmd)
 	configCmd.AddCommand(configEditCmd)
 	configCmd.AddCommand(configSetCmd)
+
+	// Add key subcommands
+	keyCmd.AddCommand(keyExportCmd)
+	keyCmd.AddCommand(keyImportCmd)
+	keyCmd.AddCommand(keyRegenCmd)
 }
 
 // Command implementations
@@ -1027,11 +1097,184 @@ func runClone(repoURL string) error {
 	return nil
 }
 
-// getHostname returns the hostname or "unknown"
 func getHostname() string {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "unknown"
 	}
 	return hostname
+}
+
+func runKeyExport() error {
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	keyFile := p.KeyFile()
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		return fmt.Errorf("no encryption key found. Run 'opencode-sync setup' with encryption enabled first")
+	}
+
+	privateKey, err := crypto.LoadKeyFromFile(keyFile)
+	if err != nil {
+		return fmt.Errorf("failed to load key: %w", err)
+	}
+
+	ui.Warn("PRIVATE KEY - Store securely! Anyone with this key can decrypt your auth tokens.")
+	fmt.Println()
+	fmt.Println(privateKey)
+	fmt.Println()
+	ui.Info("Copy this key to your password manager or secure storage.")
+	ui.Info("Use 'opencode-sync key import <key>' on other machines.")
+
+	return nil
+}
+
+func runKeyImport(key string) error {
+	if _, err := crypto.NewAgeEncryption(key); err != nil {
+		return fmt.Errorf("invalid key format: %w", err)
+	}
+
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	if err := p.EnsureDirs(); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
+	}
+
+	keyFile := p.KeyFile()
+	if _, err := os.Stat(keyFile); err == nil {
+		confirmed, err := ui.Confirm("Key already exists. Overwrite?", "This will replace your existing encryption key")
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			ui.Info("Import cancelled")
+			return nil
+		}
+	}
+
+	if err := crypto.SaveKeyToFile(key, keyFile); err != nil {
+		return fmt.Errorf("failed to save key: %w", err)
+	}
+
+	cfg, err := config.Load()
+	if err == nil && cfg != nil {
+		cfg.Encryption.Enabled = true
+		if err := config.Save(cfg); err != nil {
+			ui.Warn("Key saved but failed to update config. Run: opencode-sync config set encryption.enabled true")
+		}
+	}
+
+	ui.Success(fmt.Sprintf("Key imported to: %s", keyFile))
+	ui.Info("You can now pull encrypted data from your repo.")
+
+	return nil
+}
+
+func runKeyRegen() error {
+	ui.Warn("WARNING: Regenerating your key will make previously encrypted data unrecoverable!")
+	ui.Warn("Only proceed if you've lost your key and need to start fresh.")
+	fmt.Println()
+
+	confirmed, err := ui.Confirm("Regenerate encryption key?", "Previously encrypted auth tokens will be lost")
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		ui.Info("Cancelled")
+		return nil
+	}
+
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	if err := p.EnsureDirs(); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
+	}
+
+	keyPair, err := crypto.GenerateKey()
+	if err != nil {
+		return fmt.Errorf("failed to generate key: %w", err)
+	}
+
+	keyFile := p.KeyFile()
+	if err := crypto.SaveKeyToFile(keyPair.PrivateKey, keyFile); err != nil {
+		return fmt.Errorf("failed to save key: %w", err)
+	}
+
+	cfg, err := config.Load()
+	if err == nil && cfg != nil {
+		cfg.Encryption.Enabled = true
+		if err := config.Save(cfg); err != nil {
+			ui.Warn("Key saved but failed to update config")
+		}
+	}
+
+	ui.Success(fmt.Sprintf("New encryption key saved to: %s", keyFile))
+	fmt.Println()
+	ui.Warn("IMPORTANT: Back up your new key!")
+	ui.Info("Run 'opencode-sync key export' to view it for backup.")
+
+	return nil
+}
+
+func runRebind(newURL string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+	if cfg == nil {
+		return fmt.Errorf("no configuration found. Run 'opencode-sync setup' first")
+	}
+
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	repoDir := p.SyncRepoDir()
+	gitDir := filepath.Join(repoDir, ".git")
+
+	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
+		return fmt.Errorf("no repository found. Run 'opencode-sync init' or 'opencode-sync clone' first")
+	}
+
+	oldURL := cfg.Repo.URL
+	if oldURL == newURL {
+		ui.Info("URL is already set to: " + newURL)
+		return nil
+	}
+
+	ui.Info(fmt.Sprintf("Changing remote URL from: %s", oldURL))
+	ui.Info(fmt.Sprintf("                     to: %s", newURL))
+
+	if err := runGitCommand(repoDir, "remote", "set-url", "origin", newURL); err != nil {
+		return fmt.Errorf("failed to update git remote: %w", err)
+	}
+
+	cfg.Repo.URL = newURL
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	ui.Success("Repository URL updated!")
+	ui.Info("Run 'opencode-sync sync' to sync with the new remote.")
+
+	return nil
+}
+
+func runGitCommand(dir string, args ...string) error {
+	cmd := exec.Command("git", args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }

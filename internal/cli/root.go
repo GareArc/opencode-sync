@@ -78,6 +78,8 @@ func init() {
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(keyCmd)
+	rootCmd.AddCommand(rebindCmd)
 }
 
 // runSetupWizard runs the first-time setup wizard
@@ -137,17 +139,51 @@ func generateAndSaveKeys() error {
 
 	ui.Success(fmt.Sprintf("Encryption key saved to: %s", keyFile))
 	fmt.Println()
-	ui.Warn("IMPORTANT: Keep your public key for recovery:")
+	ui.Warn("IMPORTANT: Back up your private key! Without it, encrypted data is unrecoverable.")
 	fmt.Println()
-	fmt.Println("  " + keyPair.PublicKey)
-	fmt.Println()
-	ui.Info("Save this public key in a secure location.")
-	ui.Info("You'll need it to decrypt your data if you lose the private key.")
+	ui.Info("Run 'opencode-sync key export' to view your key for backup.")
+	ui.Info("Store it securely (e.g., password manager).")
 
 	return nil
 }
 
-// runInteractiveMenu shows the main menu and handles user selection
+func runKeyMenu() error {
+	for {
+		choice, err := ui.KeyMenu()
+		if err != nil {
+			return err
+		}
+
+		switch choice {
+		case "export":
+			if err := runKeyExport(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "import":
+			key, err := ui.Input("Paste your private key", "AGE-SECRET-KEY-1...")
+			if err != nil {
+				ui.Error(err.Error())
+				continue
+			}
+			if key == "" {
+				ui.Warn("No key provided, cancelled")
+				continue
+			}
+			if err := runKeyImport(key); err != nil {
+				ui.Error(err.Error())
+			}
+		case "regen":
+			if err := runKeyRegen(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "back":
+			return nil
+		}
+
+		fmt.Println()
+	}
+}
+
 func runInteractiveMenu(cfg *config.Config) error {
 	for {
 		choice, err := ui.MainMenu()
@@ -210,10 +246,26 @@ func runInteractiveMenu(cfg *config.Config) error {
 			if err := runDoctor(); err != nil {
 				ui.Error(err.Error())
 			}
+		case "key":
+			if err := runKeyMenu(); err != nil {
+				ui.Error(err.Error())
+			}
+		case "rebind":
+			newURL, err := ui.Input("Enter new repository URL", "git@github.com:username/repo.git")
+			if err != nil {
+				ui.Error(err.Error())
+				continue
+			}
+			if newURL == "" {
+				ui.Warn("No URL provided, cancelled")
+				continue
+			}
+			if err := runRebind(newURL); err != nil {
+				ui.Error(err.Error())
+			}
 		case "exit":
 			return nil
 		case "":
-			// Separator selected, ignore
 			continue
 		}
 

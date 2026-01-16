@@ -96,8 +96,10 @@ For scripting or power users:
 | `opencode-sync push` | Push local changes |
 | `opencode-sync status` | Show sync status |
 | `opencode-sync diff` | Show differences |
+| `opencode-sync rebind <url>` | Change remote repository URL |
 | `opencode-sync doctor` | Diagnose issues |
 | `opencode-sync config` | Manage configuration |
+| `opencode-sync key` | Manage encryption keys |
 
 ## Requirements
 
@@ -167,14 +169,45 @@ Config file location:
 
 ## Encryption
 
-opencode-sync uses [age](https://age-encryption.org/) for encryption.
+opencode-sync uses [age](https://age-encryption.org/) for encryption of sensitive files (auth tokens).
 
-```bash
-# Enable encryption during setup, or manually:
-opencode-sync config
-```
+### Key Management
 
-Your encryption key is stored locally and **never synced**. When setting up a new machine, you'll need to transfer the key file securely.
+| Command | Description |
+|---------|-------------|
+| `opencode-sync key export` | Display private key for backup |
+| `opencode-sync key import <key>` | Import key from backup |
+| `opencode-sync key regen` | Generate new key (⚠️ old encrypted data lost) |
+
+### Setting Up a New Machine
+
+1. On your **existing machine**, export your key:
+   ```bash
+   opencode-sync key export
+   ```
+2. Save the key in your password manager (e.g., 1Password)
+
+3. On your **new machine**, import the key before cloning:
+   ```bash
+   opencode-sync key import "AGE-SECRET-KEY-1..."
+   opencode-sync clone git@github.com:user/opencode-config.git
+   ```
+
+### Lost Your Key?
+
+If you lose your private key, encrypted data (auth tokens) cannot be recovered. However:
+- Your configs, agents, and other non-sensitive files are **not encrypted** and still accessible
+- You can regenerate a new key and re-authenticate:
+  ```bash
+  opencode-sync key regen
+  opencode-sync push  # Push with new encryption
+  ```
+
+### Important Notes
+
+- Your private key is stored at `~/.config/opencode-sync/age.key`
+- The key is **never synced** to the remote repository
+- **Back up your key** to a password manager immediately after setup
 
 ## Development
 

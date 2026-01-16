@@ -52,12 +52,15 @@ func MainMenu() (string, error) {
 					huh.NewOption("Push local changes", "push"),
 					huh.NewOption("View status", "status"),
 					huh.NewOption("View diff", "diff"),
+					huh.NewOption("─────────────────────", ""),
 					huh.NewOption("Settings", "config"),
+					huh.NewOption("Manage encryption key", "key"),
+					huh.NewOption("Change remote URL", "rebind"),
+					huh.NewOption("Run diagnostics", "doctor"),
 					huh.NewOption("─────────────────────", ""),
 					huh.NewOption("Initialize new repo", "init"),
 					huh.NewOption("Link to existing remote", "link"),
 					huh.NewOption("Clone from remote", "clone"),
-					huh.NewOption("Run diagnostics", "doctor"),
 					huh.NewOption("─────────────────────", ""),
 					huh.NewOption("Exit", "exit"),
 				).
@@ -139,7 +142,27 @@ func SetupWizard() (*config.Config, error) {
 	return cfg, nil
 }
 
-// Confirm shows a yes/no confirmation prompt
+func KeyMenu() (string, error) {
+	var choice string
+
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Encryption Key Management").
+				Options(
+					huh.NewOption("Export key (for backup)", "export"),
+					huh.NewOption("Import key (from backup)", "import"),
+					huh.NewOption("Regenerate key (⚠️ destructive)", "regen"),
+					huh.NewOption("Back", "back"),
+				).
+				Value(&choice),
+		),
+	)
+
+	err := form.Run()
+	return choice, err
+}
+
 func Confirm(title string, description string) (bool, error) {
 	var result bool
 
