@@ -12,15 +12,33 @@ Sync your OpenCode configurations across machines via Git, with optional encrypt
 
 ## Installation
 
-### From source
+### Quick Install (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/GareArc/opencode-sync/main/install.sh | bash
+```
+
+Or with a specific version:
+
+```bash
+VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/GareArc/opencode-sync/main/install.sh | bash
+```
+
+### From Source
 
 ```bash
 go install github.com/GareArc/opencode-sync@latest
 ```
 
-### From binary
+### From Binary
 
 Download the latest release from the [releases page](https://github.com/GareArc/opencode-sync/releases).
+
+### Homebrew (coming soon)
+
+```bash
+brew install GareArc/tap/opencode-sync
+```
 
 ## Quick Start
 
