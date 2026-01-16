@@ -167,8 +167,9 @@ Config file location:
 
 ### Always synced:
 - `opencode.json` / `opencode.jsonc` - Main config
+- `oh-my-opencode.json` - Oh My OpenCode config
 - `AGENTS.md` - Global rules
-- `agent/`, `command/`, `skill/`, `mode/`, `themes/` - Custom extensions
+- `agent/`, `command/`, `skill/`, `mode/`, `themes/`, `plugin/` - Custom extensions
 
 ### Optional (encrypted):
 - `auth.json` - OAuth tokens (requires `sync.includeAuth: true`)

@@ -82,6 +82,7 @@ func (p *Paths) SyncableOpenCodePaths() []string {
 	return []string{
 		filepath.Join(p.OpenCodeConfigDir, "opencode.json"),
 		filepath.Join(p.OpenCodeConfigDir, "opencode.jsonc"),
+		filepath.Join(p.OpenCodeConfigDir, "oh-my-opencode.json"),
 		filepath.Join(p.OpenCodeConfigDir, "AGENTS.md"),
 		filepath.Join(p.OpenCodeConfigDir, "agent"),
 		filepath.Join(p.OpenCodeConfigDir, "command"),
