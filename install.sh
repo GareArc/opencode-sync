@@ -13,15 +13,15 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 info() {
-    echo -e "${BLUE}==>${NC} $1"
+    echo -e "${BLUE}==>${NC} $1" >&2
 }
 
 success() {
-    echo -e "${GREEN}==>${NC} $1"
+    echo -e "${GREEN}==>${NC} $1" >&2
 }
 
 warn() {
-    echo -e "${YELLOW}==>${NC} $1"
+    echo -e "${YELLOW}==>${NC} $1" >&2
 }
 
 error() {
