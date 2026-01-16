@@ -343,7 +343,7 @@ func (g *BuiltinGit) Diff() (string, error) {
 	var diff string
 	for path, fileStatus := range status {
 		if fileStatus.Worktree != git.Unmodified {
-			diff += fmt.Sprintf("%s: %s\n", path, fileStatus.Worktree)
+			diff += fmt.Sprintf("%s: %c\n", path, fileStatus.Worktree)
 		}
 	}
 

@@ -1,4 +1,4 @@
-.PHONY: build run test clean install lint fmt help
+.PHONY: build run test clean install lint fmt vet check fix help
 
 # Build variables
 BINARY_NAME=opencode-sync
@@ -55,14 +55,28 @@ deps:
 	$(GOMOD) download
 	$(GOMOD) tidy
 
+## vet: Run go vet
+vet:
+	$(GOCMD) vet ./...
+
 ## lint: Run linter
 lint:
 	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
-	golangci-lint run ./...
+	golangci-lint run --timeout=5m ./...
 
 ## fmt: Format code
 fmt:
 	$(GOFMT) -s -w .
+	$(GOCMD) fmt ./...
+
+## check: Run all checks (fmt, vet, lint)
+check: fmt vet lint
+	@echo "All checks passed!"
+
+## fix: Auto-fix linting issues where possible
+fix:
+	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
+	golangci-lint run --fix --timeout=5m ./...
 
 ## build-all: Build for all platforms
 build-all: clean
