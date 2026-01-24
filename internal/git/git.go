@@ -48,6 +48,15 @@ type Repository interface {
 
 	// IsClean returns true if working directory is clean
 	IsClean() (bool, error)
+
+	// GC runs git garbage collection to optimize repository size
+	GC() error
+
+	// GetBranch returns the current branch name
+	GetBranch() (string, error)
+
+	// Fetch fetches updates from remote without merging
+	Fetch() error
 }
 
 // Status represents repository status

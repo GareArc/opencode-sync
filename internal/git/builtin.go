@@ -38,7 +38,7 @@ func (g *BuiltinGit) Clone(url string) error {
 		return fmt.Errorf("failed to create parent directory: %w", err)
 	}
 
-	if err := runGitCommand(parentDir, "clone", url, g.path); err != nil {
+	if err := runGitCommand(parentDir, "clone", "--depth", "1", url, g.path); err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
 	}
 
@@ -407,6 +407,18 @@ func (g *BuiltinGit) CheckoutBranch(branch string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to checkout branch: %w", err)
+	}
+
+	return nil
+}
+
+func (g *BuiltinGit) GC() error {
+	if g.repo == nil {
+		return fmt.Errorf("repository not initialized")
+	}
+
+	if err := runGitCommand(g.path, "gc", "--aggressive", "--prune=now"); err != nil {
+		return fmt.Errorf("failed to run git gc: %w", err)
 	}
 
 	return nil
