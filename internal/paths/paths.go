@@ -90,7 +90,7 @@ func (p *Paths) SyncableOpenCodePaths() []string {
 		filepath.Join(p.OpenCodeConfigDir, "AGENTS.md"),
 		filepath.Join(p.OpenCodeConfigDir, "agent"),
 		filepath.Join(p.OpenCodeConfigDir, "command"),
-		filepath.Join(p.OpenCodeConfigDir, "skill"),
+		filepath.Join(p.OpenCodeConfigDir, "skills"),
 		filepath.Join(p.OpenCodeConfigDir, "mode"),
 		filepath.Join(p.OpenCodeConfigDir, "themes"),
 		filepath.Join(p.OpenCodeConfigDir, "plugin"),
