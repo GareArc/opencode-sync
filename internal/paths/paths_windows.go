@@ -8,6 +8,11 @@ import (
 )
 
 func getPlatformPaths() (*Paths, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
 	appData := os.Getenv("APPDATA")
 	localAppData := os.Getenv("LOCALAPPDATA")
 
@@ -16,5 +21,6 @@ func getPlatformPaths() (*Paths, error) {
 		DataDir:           filepath.Join(localAppData, "opencode-sync"),
 		OpenCodeConfigDir: filepath.Join(appData, "opencode"),
 		OpenCodeDataDir:   filepath.Join(localAppData, "opencode"),
+		ClaudeSkillsDir:   filepath.Join(home, ".claude", "skills"),
 	}, nil
 }

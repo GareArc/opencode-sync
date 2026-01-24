@@ -98,9 +98,35 @@ For scripting or power users:
 | `opencode-sync diff` | Show differences |
 | `opencode-sync rebind <url>` | Change remote repository URL |
 | `opencode-sync doctor` | Diagnose issues |
-| `opencode-sync config` | Manage configuration |
-| `opencode-sync key` | Manage encryption keys |
+| `opencode-sync config [show\|path\|edit\|set]` | Manage configuration |
+| `opencode-sync key [export\|import\|regen]` | Manage encryption keys |
 | `opencode-sync uninstall` | Uninstall opencode-sync |
+| `opencode-sync version` | Show version information |
+
+### Config Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `opencode-sync config show` | Display current configuration (default) |
+| `opencode-sync config path` | Show configuration file path |
+| `opencode-sync config edit` | Edit configuration in $EDITOR |
+| `opencode-sync config set <key> <value>` | Set a configuration value |
+
+**Available config keys for `set`:**
+- `repo.url` - Remote repository URL
+- `repo.branch` - Branch name (default: `main`)
+- `encryption.enabled` - Enable/disable encryption (`true`/`false`)
+- `encryption.keyFile` - Path to encryption key file
+- `sync.includeAuth` - Sync auth.json (`true`/`false`)
+- `sync.includeMcpAuth` - Sync mcp-auth.json (`true`/`false`)
+
+### Key Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `opencode-sync key export` | Display private key for backup (default) |
+| `opencode-sync key import <key>` | Import key from backup |
+| `opencode-sync key regen` | Generate new key (⚠️ old encrypted data lost) |
 
 ## Uninstalling
 
@@ -170,6 +196,7 @@ Config file location:
 - `oh-my-opencode.json` - Oh My OpenCode config
 - `AGENTS.md` - Global rules
 - `agent/`, `command/`, `skill/`, `mode/`, `themes/`, `plugin/` - Custom extensions
+- `~/.claude/skills/` - Claude Code skills (many tools use this as their skill directory)
 
 ### Optional (encrypted):
 - `auth.json` - OAuth tokens (requires `sync.includeAuth: true`)
@@ -179,6 +206,10 @@ Config file location:
 - Session data
 - Logs
 - `node_modules/`
+
+### Notes:
+- The `~/.claude/skills/` directory is **always created** when syncing to local, even if Claude Code is not installed
+- This ensures compatibility with multiple Claude-based tools that use this directory for skills
 
 ## Encryption
 

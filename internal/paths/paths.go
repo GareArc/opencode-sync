@@ -18,6 +18,9 @@ type Paths struct {
 
 	// OpenCodeDataDir is where OpenCode stores its data (auth.json, etc.)
 	OpenCodeDataDir string
+
+	// ClaudeSkillsDir is where Claude Code stores skills (~/.claude/skills/)
+	ClaudeSkillsDir string
 }
 
 // Get returns the paths for the current platform
@@ -66,6 +69,7 @@ func (p *Paths) EnsureDirs() error {
 		p.ConfigDir,
 		p.DataDir,
 		p.SyncRepoDir(),
+		p.ClaudeSkillsDir,
 	}
 
 	for _, dir := range dirs {
@@ -79,7 +83,7 @@ func (p *Paths) EnsureDirs() error {
 
 // SyncableOpenCodePaths returns paths that should be synced from OpenCode config
 func (p *Paths) SyncableOpenCodePaths() []string {
-	return []string{
+	paths := []string{
 		filepath.Join(p.OpenCodeConfigDir, "opencode.json"),
 		filepath.Join(p.OpenCodeConfigDir, "opencode.jsonc"),
 		filepath.Join(p.OpenCodeConfigDir, "oh-my-opencode.json"),
@@ -91,4 +95,8 @@ func (p *Paths) SyncableOpenCodePaths() []string {
 		filepath.Join(p.OpenCodeConfigDir, "themes"),
 		filepath.Join(p.OpenCodeConfigDir, "plugin"),
 	}
+
+	paths = append(paths, p.ClaudeSkillsDir)
+
+	return paths
 }

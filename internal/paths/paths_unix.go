@@ -29,5 +29,6 @@ func getPlatformPaths() (*Paths, error) {
 		DataDir:           filepath.Join(dataHome, "opencode-sync"),
 		OpenCodeConfigDir: filepath.Join(configHome, "opencode"),
 		OpenCodeDataDir:   filepath.Join(dataHome, "opencode"),
+		ClaudeSkillsDir:   filepath.Join(home, ".claude", "skills"),
 	}, nil
 }

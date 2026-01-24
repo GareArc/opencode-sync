@@ -105,13 +105,18 @@ func (s *Syncer) CopyToRepo() error {
 			return fmt.Errorf("failed to stat %s: %w", srcPath, err)
 		}
 
-		// Calculate relative path
-		relPath, err := filepath.Rel(s.paths.OpenCodeConfigDir, srcPath)
-		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
-		}
+		var relPath string
+		var dstPath string
 
-		dstPath := filepath.Join(s.paths.SyncRepoDir(), relPath)
+		if srcPath == s.paths.ClaudeSkillsDir {
+			dstPath = filepath.Join(s.paths.SyncRepoDir(), "claude-skills")
+		} else {
+			relPath, err = filepath.Rel(s.paths.OpenCodeConfigDir, srcPath)
+			if err != nil {
+				return fmt.Errorf("failed to get relative path: %w", err)
+			}
+			dstPath = filepath.Join(s.paths.SyncRepoDir(), relPath)
+		}
 
 		if info.IsDir() {
 			// Copy directory recursively
@@ -192,7 +197,16 @@ func (s *Syncer) CopyFromRepo() error {
 		}
 
 		// Determine destination
-		dstPath := filepath.Join(s.paths.OpenCodeConfigDir, relPath)
+		var dstPath string
+		if strings.HasPrefix(relPath, "claude-skills"+string(filepath.Separator)) || relPath == "claude-skills" {
+			relToClaudeSkills, _ := filepath.Rel("claude-skills", relPath)
+			if relToClaudeSkills == "." {
+				return nil
+			}
+			dstPath = filepath.Join(s.paths.ClaudeSkillsDir, relToClaudeSkills)
+		} else {
+			dstPath = filepath.Join(s.paths.OpenCodeConfigDir, relPath)
+		}
 
 		// Handle encrypted auth.json
 		if relPath == "auth.json.age" && s.cfg.Sync.IncludeAuth {
@@ -252,7 +266,12 @@ func (s *Syncer) getSyncableFiles() ([]FileInfo, error) {
 			return nil, fmt.Errorf("failed to stat %s: %w", srcPath, err)
 		}
 
-		relPath, _ := filepath.Rel(s.paths.OpenCodeConfigDir, srcPath)
+		var relPath string
+		if srcPath == s.paths.ClaudeSkillsDir {
+			relPath = "claude-skills"
+		} else {
+			relPath, _ = filepath.Rel(s.paths.OpenCodeConfigDir, srcPath)
+		}
 
 		if info.IsDir() {
 			// Walk directory
@@ -261,8 +280,15 @@ func (s *Syncer) getSyncableFiles() ([]FileInfo, error) {
 					return err
 				}
 
-				relPath, _ := filepath.Rel(s.paths.OpenCodeConfigDir, path)
-				if s.shouldExclude(relPath) {
+				var fileRelPath string
+				if srcPath == s.paths.ClaudeSkillsDir {
+					pathRelToClaudeSkills, _ := filepath.Rel(s.paths.ClaudeSkillsDir, path)
+					fileRelPath = filepath.Join("claude-skills", pathRelToClaudeSkills)
+				} else {
+					fileRelPath, _ = filepath.Rel(s.paths.OpenCodeConfigDir, path)
+				}
+
+				if s.shouldExclude(fileRelPath) {
 					return nil
 				}
 
@@ -273,7 +299,7 @@ func (s *Syncer) getSyncableFiles() ([]FileInfo, error) {
 
 				files = append(files, FileInfo{
 					Path:    path,
-					RelPath: relPath,
+					RelPath: fileRelPath,
 					Size:    info.Size(),
 					ModTime: info.ModTime(),
 					Hash:    hash,
