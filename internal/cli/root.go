@@ -80,6 +80,7 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(keyCmd)
 	rootCmd.AddCommand(rebindCmd)
+	rootCmd.AddCommand(gcCmd)
 	rootCmd.AddCommand(uninstallCmd)
 }
 

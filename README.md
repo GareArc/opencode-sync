@@ -100,6 +100,7 @@ For scripting or power users:
 | `opencode-sync doctor` | Diagnose issues |
 | `opencode-sync config [show\|path\|edit\|set]` | Manage configuration |
 | `opencode-sync key [export\|import\|regen]` | Manage encryption keys |
+| `opencode-sync gc` | Optimize repository size (garbage collection) |
 | `opencode-sync uninstall` | Uninstall opencode-sync |
 | `opencode-sync version` | Show version information |
 
@@ -328,6 +329,31 @@ opencode-sync push
 - Key is **never synced** to remote — stays local only
 - Encrypted files use `.age` extension in repo
 - **Back up your key immediately** after setup to a password manager
+
+## Repository Size Management
+
+opencode-sync uses git to store config history locally at `~/.local/share/opencode-sync/repo/`.
+
+### Space Optimizations
+
+**Automatic optimizations:**
+- **Shallow clone**: When cloning, only the latest commit is fetched (saves ~90% space)
+- **Auto GC on pull**: Git garbage collection runs automatically after pulling changes
+
+**Manual optimization:**
+```bash
+opencode-sync gc  # Compress repository (70-90% size reduction)
+```
+
+### Projected Storage Usage
+
+| Commits | Without GC | With Auto GC |
+|---------|-----------|--------------|
+| 100     | ~2 MB     | ~200 KB      |
+| 1,000   | ~20 MB    | ~1-2 MB      |
+| 10,000  | ~200 MB   | ~5-10 MB     |
+
+**Conclusion**: Even after thousands of syncs, storage usage remains minimal (1-10 MB).
 
 ## Development
 

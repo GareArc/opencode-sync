@@ -284,6 +284,20 @@ Your OpenCode configurations are NOT affected.`,
 	},
 }
 
+var gcCmd = &cobra.Command{
+	Use:   "gc",
+	Short: "Run git garbage collection to optimize repository size",
+	Long: `Run git garbage collection on the sync repository.
+
+This compresses git history and removes unreachable objects,
+reducing repository size by 70-90%.
+
+Useful after many sync operations to keep storage optimized.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runGC()
+	},
+}
+
 func init() {
 	// Add config subcommands
 	configCmd.AddCommand(configShowCmd)
@@ -459,6 +473,13 @@ func runPull() error {
 		return syncer.CopyFromRepo()
 	}); err != nil {
 		return fmt.Errorf("failed to copy files: %w", err)
+	}
+
+	// Run garbage collection to optimize repo size
+	if err := ui.SpinnerWithResult("Optimizing repository", func() error {
+		return repo.GC()
+	}); err != nil {
+		ui.Warn(fmt.Sprintf("Failed to run gc: %v", err))
 	}
 
 	return nil
@@ -1359,5 +1380,28 @@ func runUninstall() error {
 
 	fmt.Println()
 	ui.Success("Uninstall complete!")
+	return nil
+}
+
+func runGC() error {
+	ui.Info("Running garbage collection...")
+
+	p, err := paths.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get paths: %w", err)
+	}
+
+	repo := git.NewBuiltinGit(p.SyncRepoDir())
+	if err := repo.Open(); err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	if err := ui.SpinnerWithResult("Optimizing repository", func() error {
+		return repo.GC()
+	}); err != nil {
+		return fmt.Errorf("failed to run gc: %w", err)
+	}
+
+	ui.Success("Repository optimized!")
 	return nil
 }
