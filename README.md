@@ -195,7 +195,7 @@ Config file location:
 - `opencode.json` / `opencode.jsonc` - Main config
 - `oh-my-opencode.json` - Oh My OpenCode config
 - `AGENTS.md` - Global rules
-- `agent/`, `command/`, `skill/`, `mode/`, `themes/`, `plugin/` - Custom extensions
+- `agent/`, `command/`, `skills/`, `mode/`, `themes/`, `plugin/` - Custom extensions
 - `~/.claude/skills/` - Claude Code skills (many tools use this as their skill directory)
 
 ### Optional (encrypted):
